@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[ ]:
 
 
-"""PyTorch BLOOM model."""
+
+"""PyTorch llamaLT model."""
 
 
 import math
