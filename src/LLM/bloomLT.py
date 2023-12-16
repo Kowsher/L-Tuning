@@ -1,5 +1,5 @@
 
-"""PyTorch BLOOM model."""
+"""PyTorch b model."""
 
 
 import math
