@@ -17,13 +17,13 @@ class DataCollatorForLTCls:
         tokenizer.pad_token_id=old_pad_id
         
         if config.cls_token_id and config.sep_token_id:
-            for i in range(len(prompt_encodings['input_ids'])):
-                prompt_encodings['input_ids'][i].insert(0, config.cls_token_id)
-                prompt_encodings['input_ids'][i].append(config.sep_token_id)
+            for i in range(len(self.prompt_encodings['input_ids'])):
+                self.prompt_encodings['input_ids'][i].insert(0, config.cls_token_id)
+                self.prompt_encodings['input_ids'][i].append(config.sep_token_id)
         elif config.cls_token_id:
-            prompt_encodings['input_ids'][i].insert(0, config.cls_token_id)
+            self.prompt_encodings['input_ids'][i].insert(0, config.cls_token_id)
         elif config.sep_token_id:
-            prompt_encodings['input_ids'][i].append(config.sep_token_id)
+            self.prompt_encodings['input_ids'][i].append(config.sep_token_id)
                 
         print('Prefix lenght (pre_seq_len) is', len( self.prompt_encodings['input_ids'][0]))
 
@@ -64,5 +64,4 @@ class DataCollatorForLTCls:
         #print(len(batch['input_ids']))
 
         return batch
-
 
