@@ -15,15 +15,18 @@ class DataCollatorForLTCls:
         tokenizer.pad_token_id=extra_token
         self.prompt_encodings = tokenizer(list(label2prompt.values()), padding=True, truncation=True, add_special_tokens=False)
         tokenizer.pad_token_id=old_pad_id
-        
-        if config.cls_token_id and config.sep_token_id:
+        #print('config.cls_token_id', config.cls_token_id, config.sep_token_id, len(self.prompt_encodings['input_ids']))
+  
+        if config.cls_token_id is not None and config.sep_token_id  is not None:
             for i in range(len(self.prompt_encodings['input_ids'])):
                 self.prompt_encodings['input_ids'][i].insert(0, config.cls_token_id)
                 self.prompt_encodings['input_ids'][i].append(config.sep_token_id)
-        elif config.cls_token_id:
-            self.prompt_encodings['input_ids'][i].insert(0, config.cls_token_id)
-        elif config.sep_token_id:
-            self.prompt_encodings['input_ids'][i].append(config.sep_token_id)
+        elif config.cls_token_id  is not None:
+            for i in range(len(self.prompt_encodings['input_ids'])):
+                self.prompt_encodings['input_ids'][i].insert(0, config.cls_token_id)
+        elif config.sep_token_id  is not None:
+            for i in range(len(self.prompt_encodings['input_ids'])):
+                self.prompt_encodings['input_ids'][i].append(config.sep_token_id)
                 
         print('Prefix lenght (pre_seq_len) is', len( self.prompt_encodings['input_ids'][0]))
 
@@ -64,4 +67,3 @@ class DataCollatorForLTCls:
         #print(len(batch['input_ids']))
 
         return batch
-
