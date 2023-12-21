@@ -28,7 +28,7 @@ class DataCollatorForLTCls:
             for i in range(len(self.prompt_encodings['input_ids'])):
                 self.prompt_encodings['input_ids'][i].append(config.sep_token_id)
                 
-        print('Prefix lenght (pre_seq_len) is', len( self.prompt_encodings['input_ids'][0]))
+        print('Prefix length (pre_seq_len) is', len( self.prompt_encodings['input_ids'][0]))
 
 
 
