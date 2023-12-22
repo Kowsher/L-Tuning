@@ -23,6 +23,8 @@ from transformers.modeling_outputs import (
 from transformers.modeling_utils import PreTrainedModel
 from transformers.utils import logging
 from transformers import BloomConfig, BloomPreTrainedModel, BloomModel, AutoConfig, PreTrainedModel, AutoModel
+from transformers.modeling_outputs import SequenceClassifierOutput, BaseModelOutput, Seq2SeqLMOutput
+
 
 
 logger = logging.get_logger(__name__)
@@ -40,13 +42,21 @@ class PrefixEncoder(nn.Module):
     def __init__(self, config, model):
         super().__init__()
         self.model = model
-        self.W = nn.Linear(config.hidden_size, 1)
+
         self.dropout = torch.nn.Dropout(config.hidden_dropout)
 
 
-        self.key= torch.nn.Linear(config.pre_seq_len, config.pre_seq_len*config.num_hidden_layers * config.hidden_size)
-        self.value= torch.nn.Linear(config.pre_seq_len, config.pre_seq_len*config.num_hidden_layers * config.hidden_size)
+
         self.config = config
+
+        if config.pooling==True:
+            self.W = nn.Linear(config.hidden_size, 1)
+            self.key= torch.nn.Linear(config.pre_seq_len, config.pre_seq_len*config.num_hidden_layers * config.hidden_size)
+            self.value= torch.nn.Linear(config.pre_seq_len, config.pre_seq_len*config.num_hidden_layers * config.hidden_size)
+        else:
+            self.W =None
+            self.key= torch.nn.Linear(config.hidden_size, config.num_hidden_layers * config.hidden_size)
+            self.value= torch.nn.Linear(config.hidden_size, config.num_hidden_layers * config.hidden_size)
 
 
     def forward(
@@ -78,12 +88,13 @@ class PrefixEncoder(nn.Module):
 
         #att_w = torch.nn.functional.softmax(self.W(outputs[0]).squeeze(-1), dim=-1)
         #print('att_w', att_w.shape)
-        att_w = self.W(outputs[0]).squeeze(-1)
-
-
-
-        key = self.key(att_w)
-        value = self.value(att_w)
+        if self.config.pooling==True:
+            att_w = self.W(outputs[0]).squeeze(-1)
+            key = self.key(att_w)
+            value = self.value(att_w)
+        else:
+            key = self.key(outputs[0])
+            value = self.value(outputs[0])
         #print('working', key.shape)
 
         #print('key', key.shape, 'value', value.shape)
@@ -135,8 +146,14 @@ class PromptEncoder(torch.nn.Module):
         super().__init__()
         self.model = model
 
-        self.projection = torch.nn.Linear(config.hidden_size, config.hidden_size)
+        #self.projection = torch.nn.Linear(config.hidden_size, config.hidden_size)
 
+        if config.pooling==True:
+            self.W = torch.nn.Linear(config.hidden_size, 1)
+            self.projection = torch.nn.Linear(config.pre_seq_len, config.pre_seq_len * config.hidden_size)
+        else:
+            self.W =None
+            self.projection = torch.nn.Linear(config.hidden_size, config.hidden_size)
 
         self.config = config
 
@@ -169,8 +186,12 @@ class PromptEncoder(torch.nn.Module):
         #print('here', outputs[0].shape)
 
         #print('output', output.shape)
-
-        projection = self.projection(outputs[0])
+        if self.config.pooling==True:
+            att_w = self.W(outputs[0]).squeeze(-1)
+            projection = self.projection(att_w).reshape(-1, self.config.pre_seq_len, self.config.hidden_size)
+        else:
+            projection = self.projection(outputs[0])
+        #projection = self.projection(outputs[0])
         #print('working', projection.shape)
 
         return projection
@@ -336,9 +357,6 @@ class PrefixForSequenceClassification(PreTrainedModel):
 
 
 
-
-
-
 class PromptForSequenceClassification(PreTrainedModel):
     def __init__(self, config: AutoConfig):
         super().__init__(config)
@@ -423,7 +441,7 @@ class PromptForSequenceClassification(PreTrainedModel):
 
 
 
-        transformer_outputs = self.transformer(
+        outputs = self.transformer(
             input_ids=input_ids,
             inputs_embeds=inputs_embeds,
             past_key_values=past_key_values,
@@ -434,32 +452,9 @@ class PromptForSequenceClassification(PreTrainedModel):
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
         )
+        logits = self.score(outputs.last_hidden_state)
+        logits = torch.mean(logits, dim=1)
 
-        hidden_states = transformer_outputs[0]
-
-        logits = self.score(hidden_states)
-
-
-        if input_ids is not None:
-            batch_size = input_ids.shape[0]
-        else:
-            batch_size = inputs_embeds.shape[0]
-
-        if self.config.pad_token_id is None and batch_size != 1:
-            raise ValueError("Cannot handle batch sizes > 1 if no padding token is defined.")
-        if self.config.pad_token_id is None:
-            sequence_lengths = -1
-        else:
-            if input_ids is not None:
-                sequence_lengths = (torch.ne(input_ids, self.config.pad_token_id).sum(-1) - 1).to(logits.device)
-            else:
-                sequence_lengths = -1
-                logger.warning(
-                    f"{self.__class__.__name__} will not detect padding tokens in `inputs_embeds`. Results may be "
-                    "unexpected if using padding tokens in conjunction with `inputs_embeds.`"
-                )
-
-        pooled_logits = logits[torch.arange(batch_size, device=logits.device), sequence_lengths]
 
         loss = None
         if labels is not None:
@@ -474,28 +469,25 @@ class PromptForSequenceClassification(PreTrainedModel):
             if self.config.problem_type == "regression":
                 loss_fct = MSELoss()
                 if self.num_labels == 1:
-                    loss = loss_fct(pooled_logits.squeeze(), labels.squeeze())
+                    loss = loss_fct(logits.squeeze(), labels.squeeze())
                 else:
-                    loss = loss_fct(pooled_logits, labels)
+                    loss = loss_fct(logits, labels)
             elif self.config.problem_type == "single_label_classification":
                 loss_fct = CrossEntropyLoss()
-                loss = loss_fct(pooled_logits, labels)
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
             elif self.config.problem_type == "multi_label_classification":
                 loss_fct = BCEWithLogitsLoss()
-                loss = loss_fct(pooled_logits, labels)
+                loss = loss_fct(logits, labels)
         if not return_dict:
-            output = (pooled_logits,) + transformer_outputs[1:]
+            output = (logits,) + outputs[2:]
             return ((loss,) + output) if loss is not None else output
 
-        return SequenceClassifierOutputWithPast(
+        return SequenceClassifierOutput(
             loss=loss,
-            logits=pooled_logits,
-            past_key_values=transformer_outputs.past_key_values,
-            hidden_states=transformer_outputs.hidden_states,
-            attentions=transformer_outputs.attentions,
+            logits=logits,
+            hidden_states=outputs.hidden_states,
+            attentions=outputs.attentions,
         )
-
-
 
 
 
