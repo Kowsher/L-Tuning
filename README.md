@@ -26,20 +26,15 @@ The table presents a comparative analysis of pre-trained LMs (base model) and LL
 If you use this code or the obtained results in your work, please cite this project as:
 
 ```
-@inproceedings{kowsher-etal-2023-contrastive,
-    title = "Contrastive Learning for Universal Zero-Shot {NLI} with Cross-Lingual Sentence Embeddings",
+@inproceedings{kowsher-etal-2024-l-tuning,
+    title = "L-TUNING: Synchronized Label Tuning for Prompt and Prefix in LLMs",
     author = "Kowsher, Md  and
-      Sobuj, Md. Shohanur Islam  and
+      Sobuj, Md. Shohanur Islam  and Mahmud, Asif and
       Prottasha, Nusrat Jahan  and
-      Arefin, Mohammad Shamsul  and
-      Morimoto, Yasuhiko",
-    editor = "Ataman, Duygu",
-    booktitle = "Proceedings of the 3rd Workshop on Multi-lingual Representation Learning (MRL)",
-    month = dec,
-    year = "2023",
-    address = "Singapore",
-    publisher = "Association for Computational Linguistics",
-    url = "https://aclanthology.org/2023.mrl-1.18",
-    pages = "239--252",
+      Bhat, Prakash",
+    month = jan,
+    year = "2024",
+    note = "Under review for ICLR",
 }
+
 ```
