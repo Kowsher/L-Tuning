@@ -26,15 +26,13 @@ The table presents a comparative analysis of pre-trained LMs (base model) and LL
 If you use this code or the obtained results in your work, please cite this project as:
 
 ```
-@inproceedings{kowsher-etal-2024-l-tuning,
-    title = "L-TUNING: Synchronized Label Tuning for Prompt and Prefix in LLMs",
-    author = "Kowsher, Md  and
-      Sobuj, Md. Shohanur Islam  and Mahmud, Asif and
-      Prottasha, Nusrat Jahan  and
-      Bhat, Prakash",
-    month = jan,
-    year = "2024",
-    note = "Under review for ICLR",
+@inproceedings{
+kowsher2024ltuning,
+title={L-{TUNING}: {SYNCHRONIZED} {LABEL} {TUNING} {FOR} {PROMPT} {AND} {PREFIX} {IN} {LLMS}},
+author={Md Kowsher and Md. Shohanur Islam Sobuj and Asif Mahmud and Nusrat Jahan Prottasha and Prakash Bhat},
+booktitle={The Second Tiny Papers Track at ICLR 2024},
+year={2024},
+url={https://openreview.net/forum?id=zv3xpxqjjB}
 }
 
 ```
